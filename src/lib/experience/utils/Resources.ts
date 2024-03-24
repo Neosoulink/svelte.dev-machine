@@ -16,7 +16,7 @@ export default class Resources extends EventTarget {
 	public readonly loadingManager = new LoadingManager();
 
 	public sources: Source[] = [];
-	public items: { [name: Source['name']]: LoadedItem } = {};
+	public items:  { [name: Source['name']]: LoadedItem } = {};
 	public toLoad = 0;
 	public loaded = 0;
 	public loaders: {
