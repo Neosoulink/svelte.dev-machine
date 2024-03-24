@@ -46,6 +46,8 @@ export default class Debug {
 				this._experience.canvas
 			);
 
+			this.cameraControls.target;
+
 			this.cameraControls.enableDamping = true;
 		}
 	}
@@ -82,10 +84,10 @@ export default class Debug {
 	}
 
 	update() {
-		if (this.active) {
-			this.cameraControls?.update();
-			this.miniCameraControls?.update();
-		}
+		if (!this.active) return;
+
+		this.cameraControls?.update();
+		this.miniCameraControls?.update();
 	}
 
 	destruct() {

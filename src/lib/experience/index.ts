@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 
-import Camera from './Camera';
-import Renderer from './Renderer';
+import { Camera } from './camera';
+import { Renderer } from './renderer';
 
-import Sizes, { type SceneSizesType } from './utils/Sizes';
-import Time from './utils/Time';
-import Resources, { type Source } from './utils/Resources';
-import Debug from './utils/Debug';
+import Sizes, { type SceneSizesType } from './utils/sizes';
+import Time from './utils/time';
+import Resources, { type Source } from './utils/resources';
+import Debug from './utils/debug';
 import { disposeMaterial } from './utils/helpers';
 
 import { events } from './static';

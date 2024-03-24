@@ -1,1 +1,1 @@
-export * as events from "./event.static";
+export * as events from "./events";

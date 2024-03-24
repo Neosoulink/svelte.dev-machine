@@ -1,10 +1,10 @@
-import { PerspectiveCamera, Camera as ThreeCamera } from 'three';
+import { PerspectiveCamera, Camera as ThreeCamera, Vector3 } from 'three';
 
 import { Experience } from '.';
 
 import { events } from './static';
 
-export default class Camera extends EventTarget {
+export class Camera extends EventTarget {
 	private _experience = new Experience();
 	private _sizes = this._experience.sizes;
 
@@ -14,8 +14,10 @@ export default class Camera extends EventTarget {
 		0.1,
 		500
 	);
+	public readonly initialFov = 35;
+	public readonly target = new Vector3();
+
 	public miniCamera?: PerspectiveCamera;
-	public updateProjectionMatrix = true;
 
 	constructor(miniCamera?: boolean) {
 		super();
@@ -55,13 +57,6 @@ export default class Camera extends EventTarget {
 		this.instance.updateProjectionMatrix();
 	}
 
-	public update() {
-		if (!this.updateProjectionMatrix) return;
-
-		this.instance?.updateProjectionMatrix();
-		this.miniCamera?.updateProjectionMatrix();
-	}
-
 	public removeCamera() {
 		if (!(this.instance instanceof Camera)) return;
 		this.instance.clearViewOffset();
@@ -77,6 +72,25 @@ export default class Camera extends EventTarget {
 		this.miniCamera.userData = {};
 		this._experience.scene.remove(this.miniCamera);
 		this.miniCamera = undefined;
+	}
+
+	/** Correct the aspect ration of the camera. */
+	public correctAspect() {
+		if (!(this.instance instanceof PerspectiveCamera)) return;
+
+		this.instance.fov = this.initialFov;
+		this.instance.far = 500;
+		this.resize();
+	}
+
+	public update() {
+		this.instance?.updateProjectionMatrix();
+		this.miniCamera?.updateProjectionMatrix();
+
+		if (this._experience.debug?.cameraControls?.target)
+			this.target.copy(this._experience.debug?.cameraControls?.target);
+
+		this.instance.lookAt(this.target);
 	}
 
 	public destruct() {

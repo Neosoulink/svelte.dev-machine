@@ -6,7 +6,7 @@ export interface RendererProps {
 	enableMiniRender?: boolean;
 }
 
-export default class Renderer extends EventTarget {
+export class Renderer extends EventTarget {
 	protected _experience = new Experience();
 
 	public instance: THREE.WebGLRenderer;
