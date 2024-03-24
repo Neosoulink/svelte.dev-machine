@@ -39,8 +39,8 @@ export class SvelteMachineExperience extends EventTarget {
 				domRef
 			);
 
-			this.world = new World();
 			this.physic = new Physic();
+			this.world = new World();
 		} catch (err) {
 			throw new Error(err instanceof Error ? err.message : 'Something went wrong');
 		}
@@ -49,13 +49,13 @@ export class SvelteMachineExperience extends EventTarget {
 	private _onLoaded?: () => unknown;
 	private _onUpdated?: () => unknown;
 
-	public construct() {
+	public async construct() {
 		try {
+			await this.physic?.construct();
 			this.world?.construct();
 
-			this._onLoaded = async () => {
+			this._onLoaded = () => {
 				try {
-					await this.physic?.construct();
 					this.world?.construct();
 
 					this._onUpdated = () => this.update();

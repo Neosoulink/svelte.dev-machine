@@ -9,7 +9,7 @@
 
 	onMount(async () => {
 		const experience = new SvelteMachineExperience();
-		experience.construct();
+		await experience.construct();
 
 		onDispose = () => experience.destruct();
 	});
