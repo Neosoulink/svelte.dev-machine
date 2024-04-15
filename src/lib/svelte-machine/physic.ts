@@ -16,10 +16,10 @@ export class Physic extends EventTarget {
 		const gravity = new this.rapier.Vector3(0, -9.81, 0);
 		this.world = new this.rapier.World(gravity);
 
-		const groundRigidBodyDesc = this.rapier.RigidBodyDesc.fixed().setTranslation(0, -20, 0);
+		const groundRigidBodyDesc = this.rapier.RigidBodyDesc.fixed().setTranslation(0, -10, 0);
 		this.groundRigidBody = this.world?.createRigidBody(groundRigidBodyDesc);
 
-		const groundColliderDesc = this.rapier.ColliderDesc.cuboid(1, 2, 10);
+		const groundColliderDesc = this.rapier.ColliderDesc.cuboid(100, 2, 100);
 		this.groundCollider = this.world.createCollider(groundColliderDesc, this.groundRigidBody);
 
 		this.dispatchEvent(new Event(events.CONSTRUCTED));

@@ -1,4 +1,4 @@
-import { AmbientLight, Group } from 'three';
+import { AmbientLight, Group, Mesh } from 'three';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import type RAPIER from '@dimforge/rapier3d';
 
@@ -6,6 +6,7 @@ import { events } from '$lib/experience/static';
 
 import { SvelteMachineExperience } from '..';
 import { WorldManager } from './manager';
+import { ConveyorItem } from './conveyor-item';
 
 export class World extends EventTarget {
 	private readonly _experience = new SvelteMachineExperience();
@@ -16,19 +17,33 @@ export class World extends EventTarget {
 
 	private _manager?: WorldManager;
 
-	public svelteConveyorBelt?: Group;
+	public svelteConveyorBeltGroup?: Group;
+	public conveyorItems: ConveyorItem[] = [];
+	public coneItem?: ConveyorItem;
 	public svelteConveyorBeltCollider?: RAPIER.Collider;
 
+	private _traverseConveyorBeltGroup() {
+		if (!this.svelteConveyorBeltGroup) return;
+		this.svelteConveyorBeltGroup.traverse((item) => {
+			if (/_item$/.test(item.name) && item instanceof Mesh) {
+				const newItem = new ConveyorItem(item);
+				this.conveyorItems.push(newItem);
+
+				if (item.name === 'cone_item') this.coneItem = newItem;
+			}
+		});
+	}
+
 	public construct() {
-		const svelteConveyorBelt = (this._appResources.items['svelte-conveyor-belt'] as GLTF)?.scene;
+		const svelteConveyorBeltGroup = (this._appResources.items['svelte-conveyor-belt'] as GLTF)
+			?.scene;
 
-		if (!(svelteConveyorBelt instanceof Group)) return;
+		if (!(svelteConveyorBeltGroup instanceof Group)) return;
 
-		this.svelteConveyorBelt = svelteConveyorBelt;
+		this.svelteConveyorBeltGroup = svelteConveyorBeltGroup;
+		this._app.scene.add(this._ambientLight, this.svelteConveyorBeltGroup ?? new Group());
 
-		this.svelteConveyorBeltCollider = this._physic?.applyPhysic(svelteConveyorBelt);
-
-		this._app.scene.add(this._ambientLight, this.svelteConveyorBelt ?? new Group());
+		this._traverseConveyorBeltGroup();
 
 		this._manager = new WorldManager(this);
 		this._manager.construct();
@@ -39,10 +54,5 @@ export class World extends EventTarget {
 
 	public update() {
 		this._manager?.update();
-
-		if (this.svelteConveyorBelt && this.svelteConveyorBeltCollider) {
-			this.svelteConveyorBelt.position.copy(this.svelteConveyorBeltCollider.translation());
-			this.svelteConveyorBelt.quaternion.copy(this.svelteConveyorBeltCollider.rotation());
-		}
 	}
 }

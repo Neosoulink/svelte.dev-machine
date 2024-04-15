@@ -21,7 +21,10 @@ export class WorldManager extends EventTarget {
 		}
 	}
 
-	public update(): void {}
+	public update(): void {
+		this._world.conveyorItems.map((item) => item.update());
+		this._world.coneItem?.collider;
+	}
 
 	public destruct(): void {}
 }
