@@ -9,12 +9,16 @@ export class ConveyorItem extends EventTarget {
 
 	public item: Mesh;
 	public collider?: RAPIER.Collider;
+	public rigidBody?: RAPIER.RigidBody;
 
 	constructor(item: Mesh) {
 		super();
 
 		this.item = item;
-		this.collider = this._physic?.applyPhysic(this.item);
+		const itemPhysic = this._physic?.applyPhysic(this.item);
+
+		this.collider = itemPhysic?.collider;
+		this.rigidBody = itemPhysic?.rigidBody;
 	}
 
 	construct() {}

@@ -13,14 +13,15 @@ export class Physic extends EventTarget {
 	public async construct() {
 		this.rapier = (await import('@dimforge/rapier3d')).default;
 
-		const gravity = new this.rapier.Vector3(0, -9.81, 0);
+		const gravity = new this.rapier.Vector3(0, -50, 0);
 		this.world = new this.rapier.World(gravity);
 
 		const groundRigidBodyDesc = this.rapier.RigidBodyDesc.fixed().setTranslation(0, -10, 0);
 		this.groundRigidBody = this.world?.createRigidBody(groundRigidBodyDesc);
-
-		const groundColliderDesc = this.rapier.ColliderDesc.cuboid(100, 2, 100);
+		const groundColliderDesc = this.rapier.ColliderDesc.cuboid(100, 8, 100);
 		this.groundCollider = this.world.createCollider(groundColliderDesc, this.groundRigidBody);
+		this.groundCollider.setRestitution(0.4);
+		this.groundCollider.setFriction(0.3);
 
 		this.dispatchEvent(new Event(events.CONSTRUCTED));
 	}
@@ -42,7 +43,7 @@ export class Physic extends EventTarget {
 		const colliderDesc = this.rapier.ColliderDesc.cuboid(width, height, depth);
 		const collider = this.world.createCollider(colliderDesc, rigidBody);
 
-		return collider;
+		return { collider, colliderDesc, rigidBody, rigidBodyDesc, boundingBox, width, height, depth };
 	}
 
 	public update() {
