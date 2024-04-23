@@ -18,6 +18,13 @@ export interface Object3DWithGeometry extends Object3D {
 	geometry?: BufferGeometry;
 }
 
+export interface PhysicProperties {
+	rigidBodyDesc: RAPIER.RigidBodyDesc;
+	rigidBody: RAPIER.RigidBody;
+	colliderDesc: RAPIER.ColliderDesc;
+	collider: RAPIER.Collider;
+}
+
 /**
  * @description Physic helper based on `Rapier`
  *
@@ -52,7 +59,7 @@ export class Physic extends EventTarget {
 	 *
 	 * @type {WeakMap<WeakKey, RAPIER.RigidBody | RAPIER.RigidBody[]>}
 	 */
-	public dynamicObjectMap = new WeakMap<WeakKey, RAPIER.RigidBody | RAPIER.RigidBody[]>();
+	public dynamicObjectMap = new WeakMap<WeakKey, PhysicProperties | PhysicProperties[]>();
 
 	/**
 	 * @description Add the specified `object` to the physic `dynamicObjects` map.
@@ -68,17 +75,17 @@ export class Physic extends EventTarget {
 		colliderDesc.setMass(mass);
 		colliderDesc.setRestitution(restitution);
 
-		const body =
+		const physicProperties =
 			object instanceof InstancedMesh
-				? this.createInstancedBody(object, colliderDesc, mass)
-				: this.createBody(colliderDesc, object.position, object.quaternion, mass);
+				? this.createInstancedPhysicProperties(object, colliderDesc, mass)
+				: this.createPhysicProperties(colliderDesc, object.position, object.quaternion, mass);
 
 		if (mass > 0) {
 			this.dynamicObjects.push(object);
-			this.dynamicObjectMap.set(object, body);
+			this.dynamicObjectMap.set(object, physicProperties);
 		}
 
-		return body;
+		return physicProperties;
 	}
 
 	public async construct() {
@@ -234,13 +241,17 @@ export class Physic extends EventTarget {
 	 * @param {RAPIER.ColliderDesc} colliderDesc {@link RAPIER.ColliderDesc}
 	 * @param {number | undefined} mass
 	 */
-	public createInstancedBody(mesh: InstancedMesh, colliderDesc: RAPIER.ColliderDesc, mass: number) {
+	public createInstancedPhysicProperties(
+		mesh: InstancedMesh,
+		colliderDesc: RAPIER.ColliderDesc,
+		mass: number
+	) {
 		const array = mesh.instanceMatrix.array;
 		const bodies = [];
 
 		for (let i = 0; i < mesh.count; i++) {
 			const position = this._vector.fromArray(array, i * 16 + 12);
-			bodies.push(this.createBody(colliderDesc, position, null, mass));
+			bodies.push(this.createPhysicProperties(colliderDesc, position, null, mass));
 		}
 
 		return bodies;
@@ -254,20 +265,21 @@ export class Physic extends EventTarget {
 	 * @param {RAPIER.Rotation} rotation {@link RAPIER.Rotation}
 	 * @param {number | undefined} mass
 	 */
-	public createBody(
+	public createPhysicProperties(
 		colliderDesc: RAPIER.ColliderDesc,
 		position: RAPIER.Vector3,
 		rotation?: RAPIER.Rotation | null,
 		mass = 0
 	) {
-		const desc = mass > 0 ? this.rapier.RigidBodyDesc.dynamic() : this.rapier.RigidBodyDesc.fixed();
-		desc.setTranslation(position.x, position.y, position.z);
-		if (rotation) desc.setRotation(rotation);
+		const rigidBodyDesc =
+			mass > 0 ? this.rapier.RigidBodyDesc.dynamic() : this.rapier.RigidBodyDesc.fixed();
+		rigidBodyDesc.setTranslation(position.x, position.y, position.z);
+		if (rotation) rigidBodyDesc.setRotation(rotation);
 
-		const body = this.world.createRigidBody(desc);
-		this.world.createCollider(colliderDesc, body);
+		const rigidBody = this.world.createRigidBody(rigidBodyDesc);
+		const collider = this.world.createCollider(colliderDesc, rigidBody);
 
-		return body;
+		return { rigidBodyDesc, rigidBody, colliderDesc, collider };
 	}
 
 	/**
@@ -276,14 +288,14 @@ export class Physic extends EventTarget {
 	 * @param index
 	 * @returns
 	 */
-	getBodyFromObject(object: Object3DWithGeometry, index = 0) {
-		const _body = this.dynamicObjectMap.get(object);
-		let body: RAPIER.RigidBody;
+	getPhysicPropertyFromObject(object: Object3DWithGeometry, index = 0) {
+		const _physicProperties = this.dynamicObjectMap.get(object);
+		let body: PhysicProperties;
 
-		if (!_body) return undefined;
-		if (object instanceof InstancedMesh && typeof _body === 'object')
-			body = (_body as RAPIER.RigidBody[])[index];
-		else body = _body as RAPIER.RigidBody;
+		if (!_physicProperties) return undefined;
+		if (object instanceof InstancedMesh && typeof _physicProperties === 'object')
+			body = (_physicProperties as PhysicProperties[])[index];
+		else body = _physicProperties as PhysicProperties;
 
 		return body;
 	}
@@ -296,15 +308,15 @@ export class Physic extends EventTarget {
 	 * @returns
 	 */
 	setObjectPosition(object: Object3DWithGeometry, position: RAPIER.Vector3, index = 0) {
-		const body = this.getBodyFromObject(object, index);
-		if (!body) return;
+		const physicProperties = this.getPhysicPropertyFromObject(object, index);
+		if (!physicProperties) return;
 
 		const _vectorZero = new this.rapier.Vector3(0, 0, 0);
-		body.setAngvel(_vectorZero, true);
-		body.setLinvel(_vectorZero, true);
-		body.setTranslation(position, true);
+		physicProperties.rigidBody.setAngvel(_vectorZero, true);
+		physicProperties.rigidBody.setLinvel(_vectorZero, true);
+		physicProperties.rigidBody.setTranslation(position, true);
 
-		return body;
+		return physicProperties;
 	}
 
 	/**
@@ -314,12 +326,12 @@ export class Physic extends EventTarget {
 	 * @param index
 	 */
 	setObjectVelocity(object: Object3DWithGeometry, velocity: RAPIER.Vector3, index = 0) {
-		const body = this.getBodyFromObject(object, index);
-		if (!body) return;
+		const physicProperties = this.getPhysicPropertyFromObject(object, index);
+		if (!physicProperties) return;
 
-		body.setLinvel(velocity, true);
+		physicProperties.rigidBody.setLinvel(velocity, true);
 
-		return body;
+		return physicProperties;
 	}
 
 	/**
@@ -333,13 +345,13 @@ export class Physic extends EventTarget {
 
 			if (mesh instanceof InstancedMesh) {
 				const array = mesh.instanceMatrix.array;
-				const bodies = this.dynamicObjectMap.get(mesh) as RAPIER.RigidBody[];
+				const bodies = this.dynamicObjectMap.get(mesh) as PhysicProperties[];
 
 				for (let j = 0; j < bodies.length; j++) {
-					const body = bodies[j];
+					const physicProperties = bodies[j];
 
-					const position = new Vector3().copy(body.translation());
-					this._quaternion.copy(body.rotation());
+					const position = new Vector3().copy(physicProperties.rigidBody.translation());
+					this._quaternion.copy(physicProperties.rigidBody.rotation());
 
 					this._matrix.compose(position, this._quaternion, this._scale).toArray(array, j * 16);
 				}
@@ -347,10 +359,10 @@ export class Physic extends EventTarget {
 				mesh.instanceMatrix.needsUpdate = true;
 				mesh.computeBoundingSphere();
 			} else {
-				const body = this.dynamicObjectMap.get(mesh) as RAPIER.RigidBody;
+				const physicProperties = this.dynamicObjectMap.get(mesh) as PhysicProperties;
 
-				mesh.position.copy(body.translation());
-				mesh.quaternion.copy(body.rotation());
+				mesh.position.copy(physicProperties.rigidBody.translation());
+				mesh.quaternion.copy(physicProperties.rigidBody.rotation());
 			}
 		}
 	}
