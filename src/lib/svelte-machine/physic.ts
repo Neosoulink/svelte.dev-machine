@@ -57,7 +57,7 @@ export class Physic extends EventTarget {
 			item.position.z
 		);
 		const rigidBody = this.world.createRigidBody(rigidBodyDesc);
-		const colliderDescData = this.getColliderDescData(item);
+		const colliderDescData = this.getShape(item);
 		const collider = this.world.createCollider(colliderDescData.colliderDesc, rigidBody);
 
 		return { ...colliderDescData, collider, rigidBody, rigidBodyDesc };
@@ -78,34 +78,39 @@ export class Physic extends EventTarget {
 	/**
 	 * @description Apply physic to the specify object. Add the object to the physic `world`.
 	 *
-	 * @param {Object3D} object Object3D based
-	 * @param {number} mass
-	 * @param {number} restitution
+	 * @param {Object3D} object Object3D based.
+	 * @param {number} mass Physic mass.
+	 * @param {number} restitution Physic restitution.
 	 */
 	public addToWorld(object: Object3D, mass = 0, restitution = 0) {
 		if (object instanceof Object3D) this.addObject(object, Number(mass), Number(restitution));
 	}
 
-	public getColliderDescData(object: Object3DWithGeometry) {
+	/**
+	 * @description Retrieve the shape of the passed `object`.
+	 *
+	 * @param {Object3D} object `Object3D` based.
+	 */
+	public getShape(object: Object3DWithGeometry) {
+		const positions = object?.geometry?.attributes?.position?.array;
+		let width = 0;
+		let height = 0;
+		let depth = 0;
+		let halfWidth = 0;
+		let halfHeight = 0;
+		let halfDepth = 0;
+		let radius = 0;
+		let colliderDesc: RAPIER.ColliderDesc;
+
 		if (
 			object instanceof Mesh &&
 			(object.geometry instanceof SphereGeometry || object.geometry instanceof IcosahedronGeometry)
 		) {
 			const parameters = object.geometry.parameters;
 
-			const radius = parameters.radius ?? 1;
-			return { colliderDesc: this.rapier.ColliderDesc.ball(radius), radius };
-		}
-
-		const positions = object.geometry?.attributes.position.array;
-		let width = 0,
-			height = 0,
-			depth = 0,
-			halfWidth = 0,
-			halfHeight = 0,
-			halfDepth = 0;
-
-		if (positions) {
+			radius = parameters.radius ?? 1;
+			colliderDesc = this.rapier.ColliderDesc.ball(radius);
+		} else if (positions) {
 			let minX = 0,
 				minY = 0,
 				minZ = 0,
@@ -131,6 +136,8 @@ export class Physic extends EventTarget {
 			halfWidth = width / 2;
 			halfHeight = height / 2;
 			halfDepth = depth / 2;
+
+			colliderDesc = this.rapier.ColliderDesc.cuboid(halfWidth, halfHeight, halfDepth);
 		} else {
 			const boundingBox = new Box3().setFromObject(object);
 
@@ -141,6 +148,8 @@ export class Physic extends EventTarget {
 			halfWidth = width / 2;
 			halfHeight = height / 2;
 			halfDepth = depth / 2;
+
+			colliderDesc = this.rapier.ColliderDesc.cuboid(halfWidth, halfHeight, halfDepth);
 		}
 
 		return {
@@ -150,21 +159,21 @@ export class Physic extends EventTarget {
 			halfWidth,
 			halfHeight,
 			halfDepth,
-			colliderDesc: this.rapier.ColliderDesc.cuboid(halfWidth, halfHeight, halfDepth)
+			colliderDesc
 		};
 	}
 
 	public addObject(mesh: Object3DWithGeometry, mass = 0, restitution = 0) {
-		const { colliderDesc: shape } = this.getColliderDescData(mesh);
-		if (!shape) return;
+		const { colliderDesc } = this.getShape(mesh);
+		if (!colliderDesc) return;
 
-		shape.setMass(mass);
-		shape.setRestitution(restitution);
+		colliderDesc.setMass(mass);
+		colliderDesc.setRestitution(restitution);
 
 		const body =
 			mesh instanceof InstancedMesh
-				? this.createInstancedBody(mesh, shape, mass)
-				: this.createBody(shape, mesh.position, mesh.quaternion, mass);
+				? this.createInstancedBody(mesh, colliderDesc, mass)
+				: this.createBody(colliderDesc, mesh.position, mesh.quaternion, mass);
 
 		if (mass <= 0) return;
 
@@ -172,20 +181,20 @@ export class Physic extends EventTarget {
 		this.objectMap.set(mesh, body);
 	}
 
-	public createInstancedBody(mesh: InstancedMesh, shape: RAPIER.ColliderDesc, mass: number) {
+	public createInstancedBody(mesh: InstancedMesh, colliderDesc: RAPIER.ColliderDesc, mass: number) {
 		const array = mesh.instanceMatrix.array;
 		const bodies = [];
 
 		for (let i = 0; i < mesh.count; i++) {
 			const position = this._vector.fromArray(array, i * 16 + 12);
-			bodies.push(this.createBody(shape, position, null, mass));
+			bodies.push(this.createBody(colliderDesc, position, null, mass));
 		}
 
 		return bodies;
 	}
 
 	createBody(
-		shape: RAPIER.ColliderDesc,
+		colliderDesc: RAPIER.ColliderDesc,
 		position: RAPIER.Vector3,
 		quaternion?: RAPIER.Rotation | null,
 		mass = 0
@@ -195,7 +204,7 @@ export class Physic extends EventTarget {
 		if (quaternion) desc.setRotation(quaternion);
 
 		const body = this.world.createRigidBody(desc);
-		this.world.createCollider(shape, body);
+		this.world.createCollider(colliderDesc, body);
 
 		return body;
 	}
