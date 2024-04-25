@@ -13,6 +13,7 @@ import {
 import type RAPIER from '@dimforge/rapier3d';
 
 import { events } from '$lib/experience/static';
+import { SvelteMachineExperience } from '.';
 
 export interface Object3DWithGeometry extends Object3D {
 	geometry?: BufferGeometry;
@@ -31,6 +32,8 @@ export interface PhysicProperties {
  * @docs https://rapier.rs/docs/api/javascript/JavaScript3D/
  */
 export class Physic extends EventTarget {
+	private _experience = new SvelteMachineExperience();
+	private _app = this._experience.app;
 	private _vector = new Vector3();
 	private _quaternion = new Quaternion();
 	private _matrix = new Matrix4();
@@ -91,7 +94,7 @@ export class Physic extends EventTarget {
 	public async construct() {
 		this.rapier = (await import('@dimforge/rapier3d')).default;
 
-		const gravity = new this.rapier.Vector3(0.0, -50, 0.0);
+		const gravity = new this.rapier.Vector3(0.0, -9.81 * 15, 0.0);
 		this.world = new this.rapier.World(gravity);
 
 		this.dispatchEvent(new Event(events.CONSTRUCTED));
@@ -338,14 +341,12 @@ export class Physic extends EventTarget {
 	 * @description Update the dynamic objects physics.
 	 */
 	public update() {
-		this.world.step();
-
 		for (let i = 0, l = this.dynamicObjects.length; i < l; i++) {
-			const mesh = this.dynamicObjects[i];
+			const object = this.dynamicObjects[i];
 
-			if (mesh instanceof InstancedMesh) {
-				const array = mesh.instanceMatrix.array;
-				const bodies = this.dynamicObjectMap.get(mesh) as PhysicProperties[];
+			if (object instanceof InstancedMesh) {
+				const array = object.instanceMatrix.array;
+				const bodies = this.dynamicObjectMap.get(object) as PhysicProperties[];
 
 				for (let j = 0; j < bodies.length; j++) {
 					const physicProperties = bodies[j];
@@ -356,18 +357,38 @@ export class Physic extends EventTarget {
 					this._matrix.compose(position, this._quaternion, this._scale).toArray(array, j * 16);
 				}
 
-				mesh.instanceMatrix.needsUpdate = true;
-				mesh.computeBoundingSphere();
+				object.instanceMatrix.needsUpdate = true;
+				object.computeBoundingSphere();
 			} else {
-				const physicProperties = this.dynamicObjectMap.get(mesh) as PhysicProperties;
+				const physicProperties = this.dynamicObjectMap.get(object) as PhysicProperties;
 
-				mesh.position.copy(physicProperties.rigidBody.translation());
-				mesh.quaternion.copy(physicProperties.rigidBody.rotation());
+				object.position.copy(physicProperties.rigidBody.translation());
+				object.quaternion.copy(physicProperties.rigidBody.rotation());
+			}
+		}
+
+		this.world.timestep = this._app.time.delta * 0.001;
+		this.world.step();
+	}
+
+	/**
+	 * @description Remove the specified object to the physic `world`.
+	 *
+	 * @param {Object3D} object Object3D based.
+	 */
+	removeFromWorld(object: Object3D) {
+		for (let i = 0; i < this.dynamicObjects.length; i++) {
+			const dynamicObject = this.dynamicObjects[i];
+			if (dynamicObject.id === object.id) {
+				this.dynamicObjectMap.delete(dynamicObject);
+				this.dynamicObjects.splice(i, 1);
+				return;
 			}
 		}
 	}
 
 	public destruct() {
-		/* TODO: document why this method 'destruct' is empty */
+		this.dynamicObjects = [];
+		this.dynamicObjectMap = new WeakMap();
 	}
 }

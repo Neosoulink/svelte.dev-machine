@@ -15,7 +15,7 @@ export class WorldManager extends EventTarget {
 	}
 
 	public construct(): void {
-		this._appCamera.instance.far = 500;
+		this._appCamera.instance.far = 1000;
 		this._appCamera.instance.position.set(-100, 40, -100);
 
 		if (this._appDebug?.cameraControls?.target) {
@@ -23,7 +23,7 @@ export class WorldManager extends EventTarget {
 			this._appDebug.cameraControls.target.set(0, 5, -25);
 		}
 
-		if (!this._world.cubeItem) return;
+		if (!this._world.conveyorPackedItem) return;
 	}
 
 	public setMatrix(matrix: Matrix4) {
@@ -37,9 +37,6 @@ export class WorldManager extends EventTarget {
 	}
 
 	public update(): void {
-		this._world.conveyorItems.map((item) => item.update());
-		this._world.cubeItem?.update();
+		this._world.conveyorRawItems.map((item) => item);
 	}
-
-	public destruct(): void {}
 }

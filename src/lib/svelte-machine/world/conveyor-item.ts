@@ -1,36 +1,33 @@
-import type { InstancedMesh } from 'three';
-import type RAPIER from '@dimforge/rapier3d';
+import { Color, Matrix4, type InstancedMesh } from 'three';
 
 import { SvelteMachineExperience } from '..';
+import type { PhysicProperties } from '../physic';
 
 export class ConveyorItem extends EventTarget {
 	private _experience = new SvelteMachineExperience();
 	private _physic = this._experience.physic;
 
-	public item: InstancedMesh;
-	public collider?: RAPIER.Collider;
-	public rigidBody?: RAPIER.RigidBody;
+	public object: InstancedMesh;
+	public physicalProperties?: PhysicProperties[];
 
 	constructor(item: InstancedMesh) {
 		super();
 
-		this.item = item;
-		const itemPhysic = this._physic?.applyPhysic(this.item);
+		const matrix = new Matrix4();
+		const color = new Color();
 
-		this.collider = itemPhysic?.collider;
-		this.rigidBody = itemPhysic?.rigidBody;
-		this.rigidBody?.setLinearDamping(0.5);
-		this.rigidBody?.setAngularDamping(0.5);
-	}
+		for (let i = 0; i < item.count; i++) {
+			matrix.setPosition(Math.random() * 10, 30 + i * 0.1, Math.random() * 10);
 
-	construct() {}
+			item.setMatrixAt(i, matrix);
+			item.setColorAt(i, color.setHex(Math.random() * 0xffffff));
+		}
 
-	destruct() {}
+		this.object = item;
+		this.physicalProperties = this._physic?.addToWorld(this.object, 1) as PhysicProperties[];
 
-	update() {
-		if (!this.collider) return;
-
-		this.item.position.copy(this.collider.translation());
-		this.item.quaternion.copy(this.collider.rotation());
+		this.physicalProperties.map((item) => {
+			item.rigidBody.setLinearDamping(0.5);
+		});
 	}
 }

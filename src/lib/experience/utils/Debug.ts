@@ -46,8 +46,6 @@ export default class Debug {
 				this._experience.canvas
 			);
 
-			this.cameraControls.target;
-
 			this.cameraControls.enableDamping = true;
 		}
 	}

@@ -1,14 +1,4 @@
-import {
-	AmbientLight,
-	BoxGeometry,
-	Color,
-	DynamicDrawUsage,
-	Group,
-	InstancedMesh,
-	Matrix4,
-	Mesh,
-	MeshBasicMaterial
-} from 'three';
+import { AmbientLight, Group, InstancedMesh, Mesh, MeshBasicMaterial } from 'three';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import type RAPIER from '@dimforge/rapier3d';
 
@@ -29,45 +19,28 @@ export class World extends EventTarget {
 	private _manager?: WorldManager;
 
 	public svelteConveyorBeltGroup?: Group;
-	public conveyorItems: ConveyorItem[] = [];
-	public cubeItem?: ConveyorItem;
+	public conveyorRawItems: ConveyorItem[] = [];
+	public conveyorPackedItem?: ConveyorItem;
 	public svelteConveyorBeltCollider?: RAPIER.Collider;
 
-	instancedItem?: InstancedMesh;
 
 	private _initItems() {
 		if (!this.svelteConveyorBeltGroup) return;
 
 		this.svelteConveyorBeltGroup.traverse((item) => {
 			if (!item.name.endsWith('_item') || !(item instanceof Mesh)) return;
+			const instancedMesh = new InstancedMesh(item.geometry, this._dummyItemMaterial, 2);
+			const conveyorItem = new ConveyorItem(instancedMesh);
 
 			if (item.name === 'cube_item') {
-				item.material = this._dummyItemMaterial;
-				item.scale.set(5, 5, 5);
-				item.position.setY(50);
-				item.userData.physics = { mass: 2 };
+				this.conveyorPackedItem = conveyorItem;
+				return;
+			} else this.conveyorRawItems.push(conveyorItem);
 
-				this.instancedItem = new InstancedMesh(item.geometry, this._dummyItemMaterial, 100);
-				this.instancedItem.position.set(0, 0, 0);
-				this.instancedItem.instanceMatrix.setUsage(DynamicDrawUsage);
-				this.instancedItem.userData.physics = { mass: 1 };
-
-				const matrix = new Matrix4();
-				const color = new Color();
-
-				for (let i = 0; i < this.instancedItem.count; i++) {
-					matrix.setPosition(Math.random() * 10, i * 0.1, Math.random() * 10);
-
-					this.instancedItem.setMatrixAt(i, matrix);
-					this.instancedItem.setColorAt(i, color.setHex(Math.random() * 0xffffff));
-				}
-
-				this._app.scene?.add(this.instancedItem, item);
-			}
+			this._app.scene?.add(conveyorItem.object);
 		});
 
-		this.svelteConveyorBeltGroup.userData.physics = { mass: 0 };
-		this._physic?.addScene(this._app.scene);
+		this._physic?.addToWorld(this.svelteConveyorBeltGroup);
 	}
 
 	public construct() {
@@ -77,24 +50,35 @@ export class World extends EventTarget {
 		if (!(svelteConveyorBeltGroup instanceof Group)) return;
 		this.svelteConveyorBeltGroup = svelteConveyorBeltGroup;
 
-		const floor = new Mesh(new BoxGeometry(500, 5, 500), this._dummyItemMaterial);
-		floor.position.setY(-10);
-		floor.userData.physics = { mass: 0 };
-
-		this._app.scene.add(this._ambientLight, floor);
 		this._initItems();
+
+		this._app.scene.add(this._ambientLight, this.svelteConveyorBeltGroup);
 
 		this._manager = new WorldManager(this);
 		this._manager.construct();
 
 		this.dispatchEvent(new Event(events.CONSTRUCTED));
+		window.onkeydown = () =>
+			this.conveyorRawItems.map((parentItem) => {
+				parentItem.physicalProperties?.map((item) => {
+					item.rigidBody.applyImpulse(
+						{
+							x: (Math.random() - 0.5) * 50,
+							y: Math.random() * 50,
+							z: (Math.random() - 0.5) * 50
+						},
+						true
+					);
+				});
+			});
 	}
 
 	public update() {
-		/* TODO: document why this method 'destruct' is empty */
+		this._manager?.update();
 	}
 
 	public destruct() {
-		/* TODO: document why this method 'destruct' is empty */
+		this.conveyorRawItems = [];
+		this.conveyorPackedItem = undefined;
 	}
 }
