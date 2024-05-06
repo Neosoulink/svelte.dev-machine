@@ -1,25 +1,39 @@
-import { AmbientLight, Group, Matrix4, Mesh, MeshBasicMaterial, Quaternion, Vector3 } from 'three';
+import {
+	AmbientLight,
+	BufferGeometry,
+	Group,
+	Line,
+	LineBasicMaterial,
+	Mesh,
+	MeshBasicMaterial
+} from 'three';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import type RAPIER from '@dimforge/rapier3d';
-import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 import { events } from '$lib/experience/static';
+import { createCurveFromJSON } from '$lib/curve';
+
+import conveyorBeltPathJson from '../../../data/svelte-conveyor-belt-path.json';
 
 import { SvelteMachineExperience } from '..';
 import { WorldManager } from './manager';
 import { ConveyorItem } from './conveyor-item';
+import { ConveyorBelt } from './conveyor-belt';
 
 export class World extends EventTarget {
 	private readonly _experience = new SvelteMachineExperience();
 	private readonly _app = this._experience.app;
 	private readonly _appResources = this._app.resources;
-	private readonly _physic = this._experience.physic;
 	private readonly _ambientLight = new AmbientLight(0xffffff, 1);
 	private readonly _dummyItemMaterial = new MeshBasicMaterial({ transparent: true });
+	private readonly _maxInstancesCount = 100;
 
 	private _manager?: WorldManager;
 
+	public readonly conveyorBeltPath = createCurveFromJSON(conveyorBeltPathJson);
+
 	public svelteConveyorBeltGroup?: Group;
+	public conveyorBelt?: ConveyorBelt;
 	public conveyorRawItems: ConveyorItem[] = [];
 	public conveyorPackedItem?: ConveyorItem;
 	public svelteConveyorBeltCollider?: RAPIER.Collider;
@@ -27,57 +41,35 @@ export class World extends EventTarget {
 	private _initItems() {
 		if (!this.svelteConveyorBeltGroup) return;
 
-		const _matrix4 = new Matrix4();
-		const _position = new Vector3();
-		const _rotation = new Quaternion();
-		const _scale = new Vector3();
-
 		this.svelteConveyorBeltGroup.traverse((item) => {
 			if (!(item instanceof Mesh)) return;
 
-			if (item.name === 'convoyer-belt' && this._physic?.world) {
-				const invertedParentMatrixWorld = item.matrixWorld.clone().invert();
-				const worldScale = item.getWorldScale(_scale);
-				const clonedGeometry = mergeVertices(item.geometry);
-				const triMeshMap = clonedGeometry.attributes.position.array as Float32Array;
-				const triMeshUnit = clonedGeometry.index?.array as Uint32Array;
-				const triMeshCollider = this._physic.rapier.ColliderDesc.trimesh(triMeshMap, triMeshUnit);
-
-				_matrix4
-					.copy(item.matrixWorld)
-					.premultiply(invertedParentMatrixWorld)
-					.decompose(_position, _rotation, _scale);
-
-				if (triMeshCollider) {
-					const collider = this._physic.world.createCollider(triMeshCollider);
-					collider.setTranslation({
-						x: _position.x * worldScale.x,
-						y: _position.y * worldScale.y,
-						z: _position.z * worldScale.z
-					});
-				}
+			if (item.name === 'convoyer-belt') {
+				this.conveyorBelt = new ConveyorBelt(item);
 			}
-
 			if (!item.name.endsWith('_item')) return;
 
 			const conveyorItem = new ConveyorItem({
 				geometry: item.geometry,
 				material: this._dummyItemMaterial,
-				count: 50
+				count: this._maxInstancesCount
 			});
 
 			if (item.name === 'cube_item') {
 				this.conveyorPackedItem = conveyorItem;
 			} else this.conveyorRawItems.push(conveyorItem);
+			item.visible = false;
 
 			this._app.scene?.add(conveyorItem.mesh);
 		});
 
-		setTimeout(() => {
+		let counter = 0;
+		setInterval(() => {
 			this.conveyorPackedItem?.activation({
-				index: Math.round(Math.random() * this.conveyorPackedItem.maxCount),
+				index: this.conveyorPackedItem.maxCount - 1 - counter,
 				enabled: true
 			});
+			counter++;
 		}, 1000);
 	}
 
@@ -90,7 +82,15 @@ export class World extends EventTarget {
 
 		this._initItems();
 
-		this._app.scene.add(this._ambientLight, this.svelteConveyorBeltGroup);
+		/** Remove in prod */
+		const _cameraCurvePathLine = new Line(
+			new BufferGeometry().setFromPoints(this.conveyorBeltPath.points),
+			new LineBasicMaterial({
+				color: 0xff0000
+			})
+		);
+
+		this._app.scene.add(this._ambientLight, this.svelteConveyorBeltGroup, _cameraCurvePathLine);
 
 		this._manager = new WorldManager(this);
 		this._manager.construct();
@@ -100,6 +100,7 @@ export class World extends EventTarget {
 
 	public update() {
 		this._manager?.update();
+		this.conveyorPackedItem?.update();
 	}
 
 	public destruct() {
