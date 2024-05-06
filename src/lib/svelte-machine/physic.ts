@@ -60,9 +60,9 @@ export class Physic extends EventTarget {
 	/**
 	 * @description {@link WeakMap} of dynamic objects {@link RAPIER.RigidBody}
 	 *
-	 * @type {WeakMap<WeakKey, RAPIER.RigidBody | RAPIER.RigidBody[]>}
+	 * @type {Map<WeakKey, RAPIER.RigidBody | RAPIER.RigidBody[]>}
 	 */
-	public dynamicObjectMap = new WeakMap<WeakKey, PhysicProperties | PhysicProperties[]>();
+	public dynamicObjectMap = new Map<WeakKey, PhysicProperties | PhysicProperties[]>();
 
 	/**
 	 * @description Add the specified `object` to the physic `dynamicObjects` map.
@@ -94,7 +94,7 @@ export class Physic extends EventTarget {
 	public async construct() {
 		this.rapier = (await import('@dimforge/rapier3d')).default;
 
-		const gravity = new this.rapier.Vector3(0.0, -9.81 * 15, 0.0);
+		const gravity = new this.rapier.Vector3(0.0, -9.81, 0.0);
 		this.world = new this.rapier.World(gravity);
 
 		this.dispatchEvent(new Event(events.CONSTRUCTED));
@@ -296,8 +296,7 @@ export class Physic extends EventTarget {
 		let body: PhysicProperties;
 
 		if (!_physicProperties) return undefined;
-		if (object instanceof InstancedMesh && typeof _physicProperties === 'object')
-			body = (_physicProperties as PhysicProperties[])[index];
+		if (object instanceof InstancedMesh) body = (_physicProperties as PhysicProperties[])[index];
 		else body = _physicProperties as PhysicProperties;
 
 		return body;
@@ -367,7 +366,7 @@ export class Physic extends EventTarget {
 			}
 		}
 
-		this.world.timestep = this._app.time.delta * 0.001;
+		this.world.timestep = this._app.time.delta * 0.004;
 		this.world.step();
 	}
 
@@ -377,9 +376,22 @@ export class Physic extends EventTarget {
 	 * @param {Object3D} object Object3D based.
 	 */
 	removeFromWorld(object: Object3D) {
-		for (let i = 0; i < this.dynamicObjects.length; i++) {
+		const dynamicObjectsLength = this.dynamicObjects.length;
+		for (let i = 0; i < dynamicObjectsLength; i++) {
 			const dynamicObject = this.dynamicObjects[i];
-			if (dynamicObject.id === object.id) {
+			const dynamicObjectProps = this.dynamicObjectMap.get(dynamicObject);
+
+			if (dynamicObject.id === object.id && dynamicObjectProps) {
+				if (object instanceof InstancedMesh)
+					(dynamicObjectProps as PhysicProperties[]).map((props) => {
+						this.world.removeRigidBody(props.rigidBody);
+						this.world.removeCollider(props.collider, true);
+					});
+				else {
+					this.world.removeRigidBody((dynamicObjectProps as PhysicProperties).rigidBody);
+					this.world.removeCollider((dynamicObjectProps as PhysicProperties).collider, true);
+				}
+
 				this.dynamicObjectMap.delete(dynamicObject);
 				this.dynamicObjects.splice(i, 1);
 				return;
@@ -389,6 +401,6 @@ export class Physic extends EventTarget {
 
 	public destruct() {
 		this.dynamicObjects = [];
-		this.dynamicObjectMap = new WeakMap();
+		this.dynamicObjectMap = new Map();
 	}
 }
