@@ -26,12 +26,13 @@ export class World extends EventTarget {
 	private readonly _appResources = this._app.resources;
 	private readonly _ambientLight = new AmbientLight(0xffffff, 1);
 	private readonly _dummyItemMaterial = new MeshBasicMaterial({ transparent: true });
-	private readonly _maxInstancesCount = 100;
 
 	private _manager?: WorldManager;
 
+	public readonly maxRawItemCount = 20;
 	public readonly conveyorBeltPath = createCurveFromJSON(conveyorBeltPathJson);
 
+	public sumMaxRawItemCount = 0;
 	public svelteConveyorBeltGroup?: Group;
 	public conveyorBelt?: ConveyorBelt;
 	public conveyorRawItems: ConveyorItem[] = [];
@@ -40,6 +41,7 @@ export class World extends EventTarget {
 
 	private _initItems() {
 		if (!this.svelteConveyorBeltGroup) return;
+		let conveyorPackedItem: Mesh | undefined;
 
 		this.svelteConveyorBeltGroup.traverse((item) => {
 			if (!(item instanceof Mesh)) return;
@@ -49,28 +51,31 @@ export class World extends EventTarget {
 			}
 			if (!item.name.endsWith('_item')) return;
 
-			const conveyorItem = new ConveyorItem({
-				geometry: item.geometry,
-				material: this._dummyItemMaterial,
-				count: this._maxInstancesCount
-			});
-
 			if (item.name === 'cube_item') {
-				this.conveyorPackedItem = conveyorItem;
-			} else this.conveyorRawItems.push(conveyorItem);
-			item.visible = false;
+				conveyorPackedItem = item;
+			} else {
+				const conveyorItem = new ConveyorItem({
+					geometry: item.geometry,
+					material: this._dummyItemMaterial,
+					count: this.maxRawItemCount
+				});
+				this.sumMaxRawItemCount += this.maxRawItemCount;
+				this.conveyorRawItems.push(conveyorItem);
 
-			this._app.scene?.add(conveyorItem.mesh);
+				this._app.scene?.add(conveyorItem.mesh);
+			}
+
+			item.visible = false;
 		});
 
-		let counter = 0;
-		setInterval(() => {
-			this.conveyorPackedItem?.activation({
-				index: this.conveyorPackedItem.maxCount - 1 - counter,
-				enabled: true
+		if (conveyorPackedItem) {
+			this.conveyorPackedItem = new ConveyorItem({
+				geometry: conveyorPackedItem.geometry,
+				material: this._dummyItemMaterial,
+				count: this.sumMaxRawItemCount
 			});
-			counter++;
-		}, 1000);
+			this._app.scene.add(this.conveyorPackedItem.mesh);
+		}
 	}
 
 	public construct() {
@@ -78,6 +83,7 @@ export class World extends EventTarget {
 			?.scene;
 
 		if (!(svelteConveyorBeltGroup instanceof Group)) return;
+
 		this.svelteConveyorBeltGroup = svelteConveyorBeltGroup;
 
 		this._initItems();
@@ -90,17 +96,16 @@ export class World extends EventTarget {
 			})
 		);
 
-		this._app.scene.add(this._ambientLight, this.svelteConveyorBeltGroup, _cameraCurvePathLine);
-
 		this._manager = new WorldManager(this);
 		this._manager.construct();
+
+		this._app.scene.add(this._ambientLight, this.svelteConveyorBeltGroup, _cameraCurvePathLine);
 
 		this.dispatchEvent(new Event(events.CONSTRUCTED));
 	}
 
 	public update() {
 		this._manager?.update();
-		this.conveyorPackedItem?.update();
 	}
 
 	public destruct() {

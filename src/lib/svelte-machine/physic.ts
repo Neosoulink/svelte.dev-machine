@@ -366,7 +366,7 @@ export class Physic extends EventTarget {
 			}
 		}
 
-		this.world.timestep = this._app.time.delta * 0.004;
+		this.world.timestep = this._app.time.delta * 0.003;
 		this.world.step();
 	}
 

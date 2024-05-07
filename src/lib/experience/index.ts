@@ -172,14 +172,12 @@ export class Experience extends EventTarget {
 			if (object instanceof THREE.Mesh) {
 				object.geometry.dispose();
 
-				if (Array.isArray(object.material)) {
-					for (let index = 0; index < object.material.length; index++) {
-						const material = object.material[index];
+				if (Array.isArray(object.material))
+					for (const element of object.material) {
+						const material = element;
 						disposeMaterial(material);
 					}
-				} else {
-					disposeMaterial(object.material);
-				}
+				else disposeMaterial(object.material);
 			} else if (object instanceof THREE.Light) object.dispose();
 		});
 		this.scene.userData = {};

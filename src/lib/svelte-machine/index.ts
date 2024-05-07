@@ -86,7 +86,6 @@ export class SvelteMachineExperience extends EventTarget {
 		this._onLoaded = undefined;
 		this._onUpdated = undefined;
 		SvelteMachineExperience._self = undefined;
-
 		this.dispatchEvent?.(new Event(events.DESTRUCTED));
 	}
 
