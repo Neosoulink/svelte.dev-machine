@@ -26,8 +26,6 @@ export class SvelteMachineExperience extends EventTarget {
 			this.app = new Experience(
 				{
 					enableDebug: true,
-					axesSizes: 15,
-					gridSizes: 30,
 					sources: [
 						{
 							name: 'svelte-conveyor-belt',
@@ -52,7 +50,6 @@ export class SvelteMachineExperience extends EventTarget {
 	public async construct() {
 		try {
 			await this.physic?.construct();
-			this.world?.construct();
 
 			this._onLoaded = () => {
 				try {

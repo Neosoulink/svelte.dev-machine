@@ -1,31 +1,41 @@
 import {
 	AmbientLight,
 	BufferGeometry,
+	DirectionalLight,
 	Group,
 	Line,
 	LineBasicMaterial,
+	Matrix4,
 	Mesh,
-	MeshBasicMaterial
+	Object3D,
+	Quaternion,
+	Vector3
 } from 'three';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
-import type RAPIER from '@dimforge/rapier3d';
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import type { ColliderDesc } from '@dimforge/rapier3d';
+
+import conveyorBeltPathJson from '../../../data/svelte-conveyor-belt-path.json';
 
 import { events } from '$lib/experience/static';
 import { createCurveFromJSON } from '$lib/curve';
 
-import conveyorBeltPathJson from '../../../data/svelte-conveyor-belt-path.json';
-
 import { SvelteMachineExperience } from '..';
 import { WorldManager } from './manager';
-import { ConveyorItem } from './conveyor-item';
-import { ConveyorBelt } from './conveyor-belt';
+import { InstancedItem } from './instanced-item';
+
+import type { Object3DWithGeometry } from '../physic';
 
 export class World extends EventTarget {
 	private readonly _experience = new SvelteMachineExperience();
+	private readonly _physic = this._experience.physic;
 	private readonly _app = this._experience.app;
 	private readonly _appResources = this._app.resources;
-	private readonly _ambientLight = new AmbientLight(0xffffff, 1);
-	private readonly _dummyItemMaterial = new MeshBasicMaterial({ transparent: true });
+	private readonly _ambientLight = new AmbientLight(0xffffff, 6);
+	private readonly _matrix = new Matrix4();
+	private readonly _position = new Vector3();
+	private readonly _rotation = new Quaternion();
+	private readonly _scale = new Vector3(1, 1, 1);
 
 	private _manager?: WorldManager;
 
@@ -33,60 +43,79 @@ export class World extends EventTarget {
 	public readonly conveyorBeltPath = createCurveFromJSON(conveyorBeltPathJson);
 
 	public sumMaxRawItemCount = 0;
-	public svelteConveyorBeltGroup?: Group;
-	public conveyorBelt?: ConveyorBelt;
-	public conveyorRawItems: ConveyorItem[] = [];
-	public conveyorPackedItem?: ConveyorItem;
-	public svelteConveyorBeltCollider?: RAPIER.Collider;
+	public modelsGroup?: Group;
+	public boxedItem?: InstancedItem;
+	public beltDotsItem?: InstancedItem;
+	public rawItems: InstancedItem[] = [];
 
-	private _initItems() {
-		if (!this.svelteConveyorBeltGroup) return;
-		let conveyorPackedItem: Mesh | undefined;
+	private _initItems(scene?: Group) {
+		if (!(scene instanceof Group)) throw new Error('No Model Scene Found');
 
-		this.svelteConveyorBeltGroup.traverse((item) => {
-			if (!(item instanceof Mesh)) return;
+		let boxedItem: Mesh | undefined;
 
-			if (item.name === 'convoyer-belt') {
-				this.conveyorBelt = new ConveyorBelt(item);
+		scene.traverse((object) => {
+			if (!(object instanceof Mesh)) return;
+
+			if (object.name === 'belt') this._setObjectFixedPhysicalShape(object);
+
+			if (object.name === 'belt_dots') {
+				const count = this.conveyorBeltPath.points.length / 2;
+				this.beltDotsItem = new InstancedItem({
+					geometry: object.geometry,
+					material: object.material,
+					count,
+					withPhysics: false
+				});
+
+				this.beltDotsItem.mesh.userData = { progresses: [] };
+
+				for (let i = 0; i < count; i++) {
+					const progress = i / (count - 1);
+					const point = this.conveyorBeltPath.getPointAt(progress);
+
+					this.beltDotsItem.mesh.userData.progresses[i] = progress;
+					this._matrix.setPosition(point);
+					this.beltDotsItem.mesh.setMatrixAt(i, this._matrix);
+				}
+				object.visible = false;
 			}
-			if (!item.name.endsWith('_item')) return;
 
-			if (item.name === 'cube_item') {
-				conveyorPackedItem = item;
-			} else {
-				const conveyorItem = new ConveyorItem({
-					geometry: item.geometry,
-					material: this._dummyItemMaterial,
+			if (!object.name.endsWith('_item')) return;
+
+			if (object.name === 'box_item') boxedItem = object;
+			else {
+				const instancedItem = new InstancedItem({
+					geometry: object.geometry,
+					material: object.material,
 					count: this.maxRawItemCount
 				});
 				this.sumMaxRawItemCount += this.maxRawItemCount;
-				this.conveyorRawItems.push(conveyorItem);
-
-				this._app.scene?.add(conveyorItem.mesh);
+				this.rawItems.push(instancedItem);
 			}
 
-			item.visible = false;
+			object.visible = false;
 		});
 
-		if (conveyorPackedItem) {
-			this.conveyorPackedItem = new ConveyorItem({
-				geometry: conveyorPackedItem.geometry,
-				material: this._dummyItemMaterial,
+		if (boxedItem)
+			this.boxedItem = new InstancedItem({
+				geometry: boxedItem.geometry,
+				material: boxedItem.material,
 				count: this.sumMaxRawItemCount
 			});
-			this._app.scene.add(this.conveyorPackedItem.mesh);
-		}
+
+		this.modelsGroup = scene;
+
+		[this.boxedItem, this.beltDotsItem, ...this.rawItems, { mesh: this.modelsGroup }].forEach(
+			(item) => {
+				if (item?.mesh instanceof Object3D) this._app.scene.add(item.mesh);
+			}
+		);
 	}
 
 	public construct() {
-		const svelteConveyorBeltGroup = (this._appResources.items['svelte-conveyor-belt'] as GLTF)
-			?.scene;
+		console.log(this._appResources.items['svelte-conveyor-belt']);
 
-		if (!(svelteConveyorBeltGroup instanceof Group)) return;
-
-		this.svelteConveyorBeltGroup = svelteConveyorBeltGroup;
-
-		this._initItems();
+		this._initItems((this._appResources.items['svelte-conveyor-belt'] as GLTF)?.scene);
 
 		/** Remove in prod */
 		const _cameraCurvePathLine = new Line(
@@ -99,9 +128,49 @@ export class World extends EventTarget {
 		this._manager = new WorldManager(this);
 		this._manager.construct();
 
-		this._app.scene.add(this._ambientLight, this.svelteConveyorBeltGroup, _cameraCurvePathLine);
+		const dirLight = new DirectionalLight(0xffffff, 2);
+		dirLight.position.set(8, 10, 9);
+		dirLight.castShadow = true;
+		dirLight.shadow.camera.zoom = 2;
+
+		this._app.scene.add(this._ambientLight, _cameraCurvePathLine, dirLight);
 
 		this.dispatchEvent(new Event(events.CONSTRUCTED));
+	}
+
+	private _setObjectFixedPhysicalShape(object: Object3DWithGeometry) {
+		if (!object.geometry) return;
+
+		const invertedParentMatrixWorld = object.matrixWorld.clone().invert();
+		const worldScale = object.getWorldScale(this._scale);
+
+		const clonedGeometry = mergeVertices(object.geometry);
+		const triMeshMap = clonedGeometry.attributes.position.array as Float32Array;
+		const triMeshUnit = clonedGeometry.index?.array as Uint32Array;
+		const triMeshCollider = this._physic?.rapier.ColliderDesc.trimesh(
+			triMeshMap,
+			triMeshUnit
+		) as ColliderDesc;
+
+		this._matrix
+			.copy(object.matrixWorld)
+			.premultiply(invertedParentMatrixWorld)
+			.decompose(this._position, this._rotation, this._scale);
+
+		const collider = this._physic?.world.createCollider(triMeshCollider);
+		collider?.setTranslation({
+			x: this._position.x * worldScale.x,
+			y: this._position.y * worldScale.y,
+			z: this._position.z * worldScale.z
+		});
+
+		collider?.setFriction(0.05);
+		collider?.setRestitution(0.07);
+
+		return {
+			collider,
+			colliderDesc: triMeshCollider
+		};
 	}
 
 	public update() {
@@ -109,7 +178,7 @@ export class World extends EventTarget {
 	}
 
 	public destruct() {
-		this.conveyorRawItems = [];
-		this.conveyorPackedItem = undefined;
+		this.rawItems = [];
+		this.boxedItem = undefined;
 	}
 }

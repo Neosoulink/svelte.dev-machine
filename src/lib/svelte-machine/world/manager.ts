@@ -1,4 +1,4 @@
-import { Vector3 } from 'three';
+import { Matrix4, Quaternion, Vector3 } from 'three';
 import type RAPIER from '@dimforge/rapier3d';
 
 import { SvelteMachineExperience } from '..';
@@ -15,17 +15,32 @@ export class WorldManager extends EventTarget {
 	private readonly _app = this._experience.app;
 	private readonly _appCamera = this._app.camera;
 	private readonly _appDebug = this._experience.app.debug;
-	private readonly _initialItemsVelocity = new Vector3();
+	private readonly _vecZero = new Vector3();
+	private readonly _matrix = new Matrix4();
+	private readonly _rotation = new Quaternion();
+	private readonly _scale = new Vector3(1, 1, 1);
 	private readonly _initialItemsPosition =
-		this._experience.world?.conveyorBeltPath.getPointAt(0.99).setY(12) ??
-		this._initialItemsVelocity;
+		this._experience.world?.conveyorBeltPath.getPointAt(0.99).setY(12) ?? this._vecZero;
 
 	private _rawItemsPoolLeft: PhysicProperties[] = [];
 	private _rawItemsPool: PhysicProperties[] = [];
 	private _packedItemsPoolLeft: PhysicProperties[] = [];
 
+	rotationOffset = 0;
+
 	constructor(private readonly _world: World) {
 		super();
+
+		this._app.debug?.gui
+			?.add(
+				{
+					rotationOffset: this.rotationOffset
+				},
+				'rotationOffset'
+			)
+			.min(-Math.PI)
+			.max(Math.PI)
+			.onChange((v) => (this.rotationOffset = v));
 	}
 
 	public construct(): void {
@@ -42,10 +57,10 @@ export class WorldManager extends EventTarget {
 
 		this._packedItemsPoolLeft = [
 			...this._packedItemsPoolLeft,
-			...(this._world.conveyorPackedItem?.physicalProps ?? [])
+			...(this._world.boxedItem?.physicalProps ?? [])
 		];
 
-		this._world.conveyorRawItems.forEach((rawItem) => {
+		this._world.rawItems.forEach((rawItem) => {
 			this._rawItemsPoolLeft = [...this._rawItemsPoolLeft, ...rawItem.physicalProps];
 		});
 
@@ -54,7 +69,9 @@ export class WorldManager extends EventTarget {
 			item.collider.setRestitution(0.5);
 
 			item.rigidBody.setEnabled(false);
-			item.rigidBody.setLinearDamping(0.3);
+			item.rigidBody.setLinearDamping(0.5);
+
+			if (!this._packedItemsPoolLeft[id]) return;
 
 			this._packedItemsPoolLeft[id].collider.setFriction(0.01);
 			this._packedItemsPoolLeft[id].collider.setRestitution(0.5);
@@ -65,7 +82,7 @@ export class WorldManager extends EventTarget {
 
 		setInterval(() => {
 			this._activateRandomRawItem();
-		}, 2000);
+		}, 4000);
 	}
 
 	private _activateRandomRawItem() {
@@ -102,10 +119,10 @@ export class WorldManager extends EventTarget {
 	private _resetPhysicalProps(props?: PhysicProperties) {
 		if (!props) return;
 
-		props.rigidBody.setTranslation(this._initialItemsPosition, false);
-		props.rigidBody.setRotation({ ...this._initialItemsPosition, w: 0 }, false);
-		props.rigidBody.setAngvel(this._initialItemsVelocity, false);
-		props.rigidBody.setLinvel(this._initialItemsVelocity, false);
+		props.rigidBody.setTranslation(this._vecZero, false);
+		props.rigidBody.setRotation({ ...this._vecZero, w: 0 }, false);
+		props.rigidBody.setAngvel(this._vecZero, false);
+		props.rigidBody.setLinvel(this._vecZero, false);
 		props.rigidBody.setEnabled(false);
 	}
 
@@ -157,6 +174,32 @@ export class WorldManager extends EventTarget {
 	}
 
 	public update(): void {
+		if (this._world.beltDotsItem?.mesh.userData.progresses) {
+			const beltDotsItemInstanced = this._world.beltDotsItem.mesh;
+			const beltDotsItemProgresses: number[] = this._world.beltDotsItem.mesh.userData.progresses;
+
+			for (let i = 0; i < this._world.beltDotsItem?.mesh.count; i++) {
+				const position = this._world.conveyorBeltPath.getPointAt(beltDotsItemProgresses[i]);
+				this._matrix.setPosition(position);
+
+				// Should rotate the mesh
+				// const tangent = this._world.conveyorBeltPath.getTangentAt(beltDotsItemProgresses[i]);
+				// const target = position.clone().add(tangent);
+				// this._matrix.lookAt(
+				// 	position,
+				// 	target.setY(target.y + this.rotationOffset),
+				// 	tangent.clone().add({ x: 0, y: 1, z: 0 })
+				// );
+				beltDotsItemInstanced.setMatrixAt(i, this._matrix);
+
+				beltDotsItemProgresses[i] -= 0.0005;
+				if (beltDotsItemProgresses[i] < 0) beltDotsItemProgresses[i] = 1;
+			}
+
+			beltDotsItemInstanced.instanceMatrix.needsUpdate = true;
+			beltDotsItemInstanced.computeBoundingSphere();
+		}
+
 		this._rawItemsPool.forEach((rawItem, rawItemId) => {
 			const propsUserData = rawItem?.rigidBody?.userData as RigidBodyUserData;
 			const currentPathPoint = propsUserData?.pointId;
