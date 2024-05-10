@@ -56,10 +56,7 @@ export class World extends EventTarget {
 			object.castShadow = true;
 			object.receiveShadow = true;
 
-			if (object.name === 'belt') {
-				this._setObjectFixedPhysicalShape(object);
-				object.receiveShadow = true;
-			}
+			if (object.name === 'belt') this._setObjectFixedPhysicalShape(object);
 
 			if (object.name === 'belt_dots') {
 				const count = this.conveyorBeltPath.points.length / 2;

@@ -1,3 +1,5 @@
+import { BasicShadowMap } from 'three';
+
 import { events } from '$lib/experience/static';
 import { SvelteMachineExperience } from '.';
 
@@ -8,6 +10,7 @@ export class Renderer extends EventTarget {
 
 	construct() {
 		this._renderer.instance.shadowMap.enabled = true;
+		this._renderer.instance.shadowMap.type = BasicShadowMap;
 
 		this.dispatchEvent(new Event(events.CONSTRUCTED));
 	}

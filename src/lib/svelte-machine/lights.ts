@@ -2,9 +2,13 @@ import { events } from '$lib/experience/static';
 
 import {
 	AmbientLight,
+	CameraHelper,
 	DirectionalLight,
 	DirectionalLightHelper,
 	HemisphereLight,
+	Mesh,
+	MeshStandardMaterial,
+	PlaneGeometry,
 	SpotLight,
 	Vector3
 } from 'three';
@@ -16,28 +20,49 @@ export class Lights extends EventTarget {
 	private readonly _debug = this._app.debug;
 	private readonly _target = new Vector3();
 	private readonly _ambientA = new AmbientLight(0xffffff, 1);
-	private readonly _ambientB = new AmbientLight(0x282855, 1);
-	private readonly _dirA = new DirectionalLight(0xffffff, 1);
-	private readonly _dirB = new DirectionalLight(0xffffff, 0.5);
-	private readonly _hemiA = new HemisphereLight(0xffffff, 0x000000, 0.5);
-	private readonly _machine = new SpotLight(0xff6969, 300, 30, 1.5, 0.3, 0.3);
+	private readonly _ambientB = new AmbientLight(0x282855, 0.0);
+	private readonly _dirA = new DirectionalLight(0xffffff, 0.65);
+	private readonly _dirB = new DirectionalLight(0xffffff, 1);
+	private readonly _hemiA = new HemisphereLight(0xffffff, 0x000000, 0);
+	private readonly _machine = new SpotLight(0xff6969, 0, 30, 1.5, 0.3, 0.3);
 
 	private _follow_target = true;
 
 	public construct() {
-		this._dirA.position.set(-15, 1.3, -15);
-		this._dirA.castShadow = true;
+		this._dirA.position.set(-50, 2, -40);
 		this._dirA.lookAt(this._target);
 
-		this._dirB.position.set(15, 10, -15);
+		this._dirB.position.set(10, 32, -10);
+		this._dirB.shadow.mapSize.width = 1024 * 2;
+		this._dirB.shadow.mapSize.height = 1024 * 2;
+		this._dirB.shadow.camera.near = 1;
+		this._dirB.shadow.camera.far = 50;
+		this._dirB.shadow.camera.top = 80;
+		this._dirB.shadow.camera.bottom = -80;
+		this._dirB.shadow.camera.left = -80;
+		this._dirB.shadow.camera.right = 80;
+		this._dirB.shadow.radius = 24;
 		this._dirB.castShadow = true;
 		this._dirB.lookAt(this._target);
 
-		this._machine.position.set(-3.8, 7.6, -2.3);
+		this._machine.shadow.mapSize.width = 1024 * 2;
+		this._machine.shadow.mapSize.height = 1024 * 2;
+		this._machine.shadow.camera.near = 1;
+		this._machine.shadow.camera.far = 10;
+		this._machine.shadow.radius = 24;
 		this._machine.castShadow = true;
+		this._machine.position.set(-3.8, 7.6, -2.3);
 		this._machine.target.position.copy(this._machine.position.clone().setY(0));
 
+		const planeFloor = new Mesh(
+			new PlaneGeometry(100, 100),
+			new MeshStandardMaterial({ color: 0xffffff })
+		);
+		planeFloor.receiveShadow = true;
+		planeFloor.rotateX(-Math.PI / 2);
+
 		this._app.scene.add(
+			planeFloor,
 			this._ambientA,
 			this._ambientB,
 			this._dirA,
@@ -105,8 +130,9 @@ export class Lights extends EventTarget {
 
 			const dirAHelp = new DirectionalLightHelper(this._dirA, 10);
 			const dirBHelp = new DirectionalLightHelper(this._dirB, 10);
+			const dirBShadowHelp = new CameraHelper(this._dirB.shadow.camera);
 
-			this._app.scene.add(dirAHelp, dirBHelp);
+			this._app.scene.add(dirAHelp, dirBHelp, dirBShadowHelp);
 		}
 
 		this.dispatchEvent(new Event(events.CONSTRUCTED));
