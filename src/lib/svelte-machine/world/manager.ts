@@ -1,4 +1,4 @@
-import { Matrix4, Quaternion, Vector3 } from 'three';
+import { Matrix4, Vector3 } from 'three';
 import type RAPIER from '@dimforge/rapier3d';
 
 import { SvelteMachineExperience } from '..';
@@ -13,12 +13,8 @@ export interface RigidBodyUserData {
 export class WorldManager extends EventTarget {
 	private readonly _experience = new SvelteMachineExperience();
 	private readonly _app = this._experience.app;
-	private readonly _appCamera = this._app.camera;
-	private readonly _appDebug = this._experience.app.debug;
 	private readonly _vecZero = new Vector3();
 	private readonly _matrix = new Matrix4();
-	private readonly _rotation = new Quaternion();
-	private readonly _scale = new Vector3(1, 1, 1);
 	private readonly _initialItemsPosition =
 		this._experience.world?.conveyorBeltPath.getPointAt(0.99).setY(12) ?? this._vecZero;
 
@@ -45,13 +41,6 @@ export class WorldManager extends EventTarget {
 
 	public construct(): void {
 		if (!this._world) throw new Error('Unable to retrieve the World');
-		this._appCamera.instance.far = 1000;
-		this._appCamera.instance.position.set(-100, 40, -100);
-
-		if (this._appDebug?.cameraControls?.target) {
-			this._appDebug.cameraControls.target.set(0, 5, -25);
-			this._appDebug.cameraControls.target.set(0, 5, -25);
-		}
 
 		this._rawItemsPoolLeft = [];
 

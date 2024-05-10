@@ -1,7 +1,5 @@
 import {
-	AmbientLight,
 	BufferGeometry,
-	DirectionalLight,
 	Group,
 	Line,
 	LineBasicMaterial,
@@ -31,7 +29,6 @@ export class World extends EventTarget {
 	private readonly _physic = this._experience.physic;
 	private readonly _app = this._experience.app;
 	private readonly _appResources = this._app.resources;
-	private readonly _ambientLight = new AmbientLight(0xffffff, 6);
 	private readonly _matrix = new Matrix4();
 	private readonly _position = new Vector3();
 	private readonly _rotation = new Quaternion();
@@ -56,7 +53,13 @@ export class World extends EventTarget {
 		scene.traverse((object) => {
 			if (!(object instanceof Mesh)) return;
 
-			if (object.name === 'belt') this._setObjectFixedPhysicalShape(object);
+			object.castShadow = true;
+			object.receiveShadow = true;
+
+			if (object.name === 'belt') {
+				this._setObjectFixedPhysicalShape(object);
+				object.receiveShadow = true;
+			}
 
 			if (object.name === 'belt_dots') {
 				const count = this.conveyorBeltPath.points.length / 2;
@@ -90,18 +93,25 @@ export class World extends EventTarget {
 					count: this.maxRawItemCount
 				});
 				this.sumMaxRawItemCount += this.maxRawItemCount;
+
+				instancedItem.mesh.castShadow = true;
+				instancedItem.mesh.receiveShadow = true;
+
 				this.rawItems.push(instancedItem);
 			}
 
 			object.visible = false;
 		});
 
-		if (boxedItem)
+		if (boxedItem) {
 			this.boxedItem = new InstancedItem({
 				geometry: boxedItem.geometry,
 				material: boxedItem.material,
 				count: this.sumMaxRawItemCount
 			});
+			this.boxedItem.mesh.castShadow = true;
+			this.boxedItem.mesh.receiveShadow = true;
+		}
 
 		this.modelsGroup = scene;
 
@@ -113,8 +123,6 @@ export class World extends EventTarget {
 	}
 
 	public construct() {
-		console.log(this._appResources.items['svelte-conveyor-belt']);
-
 		this._initItems((this._appResources.items['svelte-conveyor-belt'] as GLTF)?.scene);
 
 		/** Remove in prod */
@@ -128,12 +136,7 @@ export class World extends EventTarget {
 		this._manager = new WorldManager(this);
 		this._manager.construct();
 
-		const dirLight = new DirectionalLight(0xffffff, 2);
-		dirLight.position.set(8, 10, 9);
-		dirLight.castShadow = true;
-		dirLight.shadow.camera.zoom = 2;
-
-		this._app.scene.add(this._ambientLight, _cameraCurvePathLine, dirLight);
+		this._app.scene.add(_cameraCurvePathLine);
 
 		this.dispatchEvent(new Event(events.CONSTRUCTED));
 	}

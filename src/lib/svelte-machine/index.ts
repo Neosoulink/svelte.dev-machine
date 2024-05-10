@@ -1,15 +1,22 @@
 import { events } from '$lib/experience/static';
 import { Experience } from '$lib/experience';
-import { World } from './world';
+
 import { Physic } from './physic';
+import { Renderer } from './renderer';
+import { Camera } from './camera';
+import { Lights } from './lights';
+import { World } from './world';
 
 export class SvelteMachineExperience extends EventTarget {
 	protected static _self?: SvelteMachineExperience;
 
 	readonly app!: Experience;
 
-	public readonly world?: World;
 	public readonly physic?: Physic;
+	public readonly renderer?: Renderer;
+	public readonly camera?: Camera;
+	public readonly lights?: Lights;
+	public readonly world?: World;
 
 	/**
 	 * `SvelteMachineExperience` constructor
@@ -38,6 +45,9 @@ export class SvelteMachineExperience extends EventTarget {
 			);
 
 			this.physic = new Physic();
+			this.renderer = new Renderer();
+			this.camera = new Camera();
+			this.lights = new Lights();
 			this.world = new World();
 		} catch (err) {
 			throw new Error(err instanceof Error ? err.message : 'Something went wrong');
@@ -50,6 +60,9 @@ export class SvelteMachineExperience extends EventTarget {
 	public async construct() {
 		try {
 			await this.physic?.construct();
+			this.renderer?.construct();
+			this.camera?.construct();
+			this.lights?.construct();
 
 			this._onLoaded = () => {
 				try {
