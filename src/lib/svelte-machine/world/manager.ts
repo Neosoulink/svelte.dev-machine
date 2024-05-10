@@ -12,7 +12,6 @@ export interface RigidBodyUserData {
 
 export class WorldManager extends EventTarget {
 	private readonly _experience = new SvelteMachineExperience();
-	private readonly _app = this._experience.app;
 	private readonly _vecZero = new Vector3();
 	private readonly _matrix = new Matrix4();
 	private readonly _initialItemsPosition =
@@ -22,21 +21,8 @@ export class WorldManager extends EventTarget {
 	private _rawItemsPool: PhysicProperties[] = [];
 	private _packedItemsPoolLeft: PhysicProperties[] = [];
 
-	rotationOffset = 0;
-
 	constructor(private readonly _world: World) {
 		super();
-
-		this._app.debug?.gui
-			?.add(
-				{
-					rotationOffset: this.rotationOffset
-				},
-				'rotationOffset'
-			)
-			.min(-Math.PI)
-			.max(Math.PI)
-			.onChange((v) => (this.rotationOffset = v));
 	}
 
 	public construct(): void {

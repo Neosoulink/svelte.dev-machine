@@ -28,8 +28,6 @@ export class Renderer extends EventTarget {
 		this.instance.setClearColor('#211d20');
 		this.instance.setSize(this._experience.sizes.width, this._experience.sizes.height);
 		this.instance.setPixelRatio(this._experience.sizes.pixelRatio);
-
-		this.instance.shadowMap.enabled = true;
 	}
 
 	resize() {

@@ -101,6 +101,7 @@ export class SvelteMachineExperience extends EventTarget {
 
 	public update() {
 		this.physic?.update();
+		this.lights?.update();
 		this.world?.update();
 	}
 }
