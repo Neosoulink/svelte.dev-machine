@@ -34,7 +34,7 @@ export class SvelteMachineExperience extends EventTarget {
 
 			this.app = new Experience(
 				{
-					enableDebug: true,
+					enableDebug: false,
 					sources: [
 						{
 							name: 'svelte-conveyor-belt',
@@ -111,6 +111,7 @@ export class SvelteMachineExperience extends EventTarget {
 	public update() {
 		this.physic?.update();
 		this.lights?.update();
+		this.camera?.update();
 		this.world?.update();
 	}
 }
