@@ -7,12 +7,11 @@ export class Camera {
 	private _debug = this._app.debug;
 
 	construct() {
-		this._camera.instance.far = 1000;
-		this._camera.instance.position.set(-100, 40, -100);
+		this._camera.instance.near = 0.1;
+		this._camera.instance.far = 300;
+		this._camera.instance.position.set(-50, 48, -43);
+		this._camera.target.set(7.6, -1.1, -12);
 
-		if (this._debug?.cameraControls?.target) {
-			this._debug.cameraControls.target.set(0, 5, -25);
-			this._debug.cameraControls.target.set(0, 5, -25);
-		}
+		if (this._debug?.cameraControls?.target) this._debug.cameraControls.target.set(7.6, -1.1, -12);
 	}
 }

@@ -1,4 +1,4 @@
-import { BasicShadowMap } from 'three';
+import { ACESFilmicToneMapping, BasicShadowMap } from 'three';
 
 import { events } from '$lib/experience/static';
 import { SvelteMachineExperience } from '.';
@@ -9,6 +9,7 @@ export class Renderer extends EventTarget {
 	private readonly _renderer = this._app.renderer;
 
 	construct() {
+		this._renderer.instance.toneMapping = ACESFilmicToneMapping;
 		this._renderer.instance.shadowMap.enabled = true;
 		this._renderer.instance.shadowMap.type = BasicShadowMap;
 

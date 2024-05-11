@@ -1,14 +1,4 @@
-import {
-	BufferGeometry,
-	Group,
-	Line,
-	LineBasicMaterial,
-	Matrix4,
-	Mesh,
-	Object3D,
-	Quaternion,
-	Vector3
-} from 'three';
+import { Group, Matrix4, Mesh, MeshStandardMaterial, Object3D, Quaternion, Vector3 } from 'three';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { ColliderDesc } from '@dimforge/rapier3d';
@@ -44,10 +34,12 @@ export class World extends EventTarget {
 	public boxedItem?: InstancedItem;
 	public beltDotsItem?: InstancedItem;
 	public rawItems: InstancedItem[] = [];
+	public modelMaterials: MeshStandardMaterial[] = [];
 
 	private _initItems(scene?: Group) {
 		if (!(scene instanceof Group)) throw new Error('No Model Scene Found');
 
+		const modelMaterialsId: number[] = [];
 		let boxedItem: Mesh | undefined;
 
 		scene.traverse((object) => {
@@ -55,6 +47,14 @@ export class World extends EventTarget {
 
 			object.castShadow = true;
 			object.receiveShadow = true;
+
+			if (
+				object.material instanceof MeshStandardMaterial &&
+				!modelMaterialsId.includes(object.material.id)
+			) {
+				this.modelMaterials.push(object.material);
+				modelMaterialsId.push(object.material.id);
+			}
 
 			if (object.name === 'belt') this._setObjectFixedPhysicalShape(object);
 
@@ -122,18 +122,8 @@ export class World extends EventTarget {
 	public construct() {
 		this._initItems((this._appResources.items['svelte-conveyor-belt'] as GLTF)?.scene);
 
-		/** Remove in prod */
-		const _cameraCurvePathLine = new Line(
-			new BufferGeometry().setFromPoints(this.conveyorBeltPath.points),
-			new LineBasicMaterial({
-				color: 0xff0000
-			})
-		);
-
 		this._manager = new WorldManager(this);
 		this._manager.construct();
-
-		this._app.scene.add(_cameraCurvePathLine);
 
 		this.dispatchEvent(new Event(events.CONSTRUCTED));
 	}

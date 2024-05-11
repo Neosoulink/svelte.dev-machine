@@ -6,6 +6,7 @@ import { Renderer } from './renderer';
 import { Camera } from './camera';
 import { Lights } from './lights';
 import { World } from './world';
+import { Environments } from './environments';
 
 export class SvelteMachineExperience extends EventTarget {
 	protected static _self?: SvelteMachineExperience;
@@ -17,6 +18,7 @@ export class SvelteMachineExperience extends EventTarget {
 	public readonly camera?: Camera;
 	public readonly lights?: Lights;
 	public readonly world?: World;
+	public readonly environments?: Environments;
 
 	/**
 	 * `SvelteMachineExperience` constructor
@@ -38,6 +40,11 @@ export class SvelteMachineExperience extends EventTarget {
 							name: 'svelte-conveyor-belt',
 							path: '/3D/svelte-conveyor-belt.glb',
 							type: 'gltfModel'
+						},
+						{
+							name: 'scifi-texture',
+							path: '/imgs/scifi.jpg',
+							type: 'texture'
 						}
 					]
 				},
@@ -49,6 +56,7 @@ export class SvelteMachineExperience extends EventTarget {
 			this.camera = new Camera();
 			this.lights = new Lights();
 			this.world = new World();
+			this.environments = new Environments();
 		} catch (err) {
 			throw new Error(err instanceof Error ? err.message : 'Something went wrong');
 		}
@@ -67,6 +75,7 @@ export class SvelteMachineExperience extends EventTarget {
 			this._onLoaded = () => {
 				try {
 					this.world?.construct();
+					this.environments?.construct();
 
 					this._onUpdated = () => this.update();
 					this.app?.addEventListener(events.UPDATED, this._onUpdated);

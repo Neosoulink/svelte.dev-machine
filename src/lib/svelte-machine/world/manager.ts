@@ -16,6 +16,7 @@ export class WorldManager extends EventTarget {
 	private readonly _matrix = new Matrix4();
 	private readonly _initialItemsPosition =
 		this._experience.world?.conveyorBeltPath.getPointAt(0.99).setY(12) ?? this._vecZero;
+	private readonly _switchPoint = 17;
 
 	private _rawItemsPoolLeft: PhysicProperties[] = [];
 	private _rawItemsPool: PhysicProperties[] = [];
@@ -186,7 +187,7 @@ export class WorldManager extends EventTarget {
 			propsUserData.pointId = this._getCurvePointFromCurvePoint(dynamicItem, currentPathPoint);
 
 			if (
-				propsUserData.pointId === 13 &&
+				propsUserData.pointId === this._switchPoint &&
 				!propsUserData.packed &&
 				this._packedItemsPoolLeft.length
 			) {
