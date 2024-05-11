@@ -26,7 +26,7 @@ export class World extends EventTarget {
 
 	private _manager?: WorldManager;
 
-	public readonly maxRawItemCount = 20;
+	public readonly maxRawItemCount = 15;
 	public readonly conveyorBeltPath = createCurveFromJSON(conveyorBeltPathJson);
 
 	public sumMaxRawItemCount = 0;
@@ -155,7 +155,7 @@ export class World extends EventTarget {
 		});
 
 		collider?.setFriction(0.05);
-		collider?.setRestitution(0.07);
+		collider?.setRestitution(0.65);
 
 		return {
 			collider,

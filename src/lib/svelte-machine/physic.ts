@@ -352,8 +352,11 @@ export class Physic extends EventTarget {
 
 					const position = new Vector3().copy(physicProperties.rigidBody.translation());
 					this._quaternion.copy(physicProperties.rigidBody.rotation());
+					const scale =
+						(physicProperties.rigidBody.userData as { scale?: Vector3 })?.scale ?? this._scale;
 
-					this._matrix.compose(position, this._quaternion, this._scale).toArray(array, j * 16);
+					this._matrix.compose(position, this._quaternion, scale);
+					this._matrix.toArray(array, j * 16);
 				}
 
 				object.instanceMatrix.needsUpdate = true;

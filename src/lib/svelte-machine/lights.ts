@@ -11,9 +11,10 @@ export class Lights extends EventTarget {
 	private readonly _ambientA = new AmbientLight(0xffffff, 0.8);
 	private readonly _dirA = new DirectionalLight(0xffffff, 0.65);
 	private readonly _dirB = new DirectionalLight(0xffffff, 1);
-	private readonly _machine = new SpotLight(0xff5f39, 80, 30, 1.5, 0.3, 0.3);
 
 	private _follow_target = true;
+
+	public readonly machine = new SpotLight(0xff5f39, 80, 30, 1.5, 0.3, 0.3);
 
 	public construct() {
 		this._dirA.position.set(-50, -1.5, -14);
@@ -33,23 +34,17 @@ export class Lights extends EventTarget {
 		this._dirB.castShadow = true;
 		this._dirB.lookAt(this._target);
 
-		this._machine.shadow.mapSize.width = 1024 * 2;
-		this._machine.shadow.mapSize.height = 1024 * 2;
-		this._machine.shadow.camera.near = 1;
-		this._machine.shadow.camera.far = 10;
-		this._machine.shadow.bias = -0.0075;
-		this._machine.shadow.radius = 24;
-		this._machine.castShadow = true;
-		this._machine.position.set(-3.8, 7.7, -2.3);
-		this._machine.target.position.copy(this._machine.position.clone().setY(0));
+		this.machine.shadow.mapSize.width = 1024 * 2;
+		this.machine.shadow.mapSize.height = 1024 * 2;
+		this.machine.shadow.camera.near = 1;
+		this.machine.shadow.camera.far = 10;
+		this.machine.shadow.bias = -0.0075;
+		this.machine.shadow.radius = 24;
+		this.machine.castShadow = true;
+		this.machine.position.set(-3.8, 7.7, -2.3);
+		this.machine.target.position.copy(this.machine.position.clone().setY(0));
 
-		this._app.scene.add(
-			this._ambientA,
-			this._dirA,
-			this._dirB,
-			this._machine,
-			this._machine.target
-		);
+		this._app.scene.add(this._ambientA, this._dirA, this._dirB, this.machine, this.machine.target);
 
 		this.dispatchEvent(new Event(events.CONSTRUCTED));
 	}

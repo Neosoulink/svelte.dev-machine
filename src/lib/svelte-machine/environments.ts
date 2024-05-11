@@ -29,7 +29,7 @@ export class Environments extends EventTarget {
 				material.metalness = 0.5;
 			}
 
-			if (material.name === 'plastic-black') {
+			if (['plastic-black', 'white'].includes(material.name)) {
 				material.roughness = 0.5;
 				material.metalness = 0.1;
 			}
