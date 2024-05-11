@@ -9,3 +9,5 @@ export const RESIZED = 'RESIZED';
 export const STARTED = 'STARTED';
 export const PROGRESSED = 'PROGRESSED';
 export const LOADED = 'LOADED';
+export const UI_TOGGLE_ZOOM = 'UI_TOGGLE_ZOOM';
+export const UI_SPAWN_RATE = 'UI_SPAWN_RATE';

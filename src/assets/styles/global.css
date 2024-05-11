@@ -5,7 +5,7 @@
 
 	color-scheme: light dark;
 	color: rgba(255, 255, 255, 0.87);
-	background-color: #242424;
+	background-color: #dedede;
 
 	font-synthesis: none;
 	text-rendering: optimizeLegibility;
@@ -35,4 +35,61 @@ section {
 	position: fixed;
 	opacity: 1;
 	z-index: 0;
+}
+
+#loader {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100dvw;
+	height: 100dvh;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
+	z-index: 30;
+	transition: all ease-in-out 1s;
+}
+
+#controls {
+	position: fixed;
+	bottom: 0;
+	margin-bottom: 30px;
+	border-radius: 30pc;
+	padding: 10px 20px;
+	background-color: #1a1a1a;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 20;
+}
+
+#controls > a,
+#controls > span {
+	height: 45px;
+	width: 45px;
+	display: flex;
+	margin: 0 10px;
+	justify-content: center;
+	align-items: center;
+	background-color: #1a1a1a;
+	border-radius: 100px;
+	transition: all 0.3s;
+	cursor: pointer;
+	color: white;
+	stroke: white;
+	fill: white;
+	opacity: 0.8;
+}
+
+#controls > span:hover,
+#controls > a:hover {
+	opacity: 1;
+}
+
+#controls > span.active,
+#controls > a.active {
+	background-color: #f73c00;
 }

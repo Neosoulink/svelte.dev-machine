@@ -155,7 +155,7 @@ export class World extends EventTarget {
 		});
 
 		collider?.setFriction(0.05);
-		collider?.setRestitution(0.65);
+		collider?.setRestitution(0.5);
 
 		return {
 			collider,
@@ -168,6 +168,8 @@ export class World extends EventTarget {
 	}
 
 	public destruct() {
+		this._manager?.destruct();
+
 		this.rawItems = [];
 		this.boxedItem = undefined;
 	}

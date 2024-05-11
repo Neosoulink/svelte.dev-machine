@@ -1,4 +1,6 @@
 import { PerspectiveCamera, Vector2 } from 'three';
+
+import { events } from '$lib/experience/static';
 import { SvelteMachineExperience } from '.';
 
 export class Camera extends EventTarget {
@@ -6,6 +8,7 @@ export class Camera extends EventTarget {
 	private readonly _app = this._experience.app;
 	private readonly _time = this._app.time;
 	private readonly _camera = this._app.camera;
+	private readonly _ui = this._experience.ui;
 	private readonly _debug = this._app.debug;
 	private readonly _position = new Vector2(19.7, 5.5);
 	private readonly _smoothedPosition = this._position.clone();
@@ -15,7 +18,7 @@ export class Camera extends EventTarget {
 	private readonly _radius = -65;
 
 	private _onMouseMove?: (e?: MouseEvent) => unknown;
-	private _onClick?: (e?: MouseEvent) => unknown;
+	private _onClick?: (e?: Event) => unknown;
 	private _isAnimating = false;
 	private _zoomingIntervalId = 0;
 
@@ -39,11 +42,11 @@ export class Camera extends EventTarget {
 			this._position.x = newX;
 			this._position.y = newY;
 		};
-
-		this._onClick = () => this.toggleZoom();
 		this._onMouseMove();
+		this._onClick = () => this.toggleZoom();
+
 		document.addEventListener('mousemove', this._onMouseMove);
-		document.addEventListener('click', this._onClick);
+		this._ui?.addEventListener(events.UI_TOGGLE_ZOOM, this._onClick);
 	}
 
 	toggleZoom() {
@@ -55,6 +58,7 @@ export class Camera extends EventTarget {
 			this._zoomingIntervalId = setInterval(() => {
 				this._camera.instance.fov -= 0.5;
 				if (this._camera.instance.fov < 35) {
+					if (this._ui?.zoomControl) this._ui.zoomControl.classList.remove('active');
 					clearInterval(this._zoomingIntervalId);
 					this._isAnimating = false;
 				}
@@ -63,6 +67,7 @@ export class Camera extends EventTarget {
 			this._zoomingIntervalId = setInterval(() => {
 				this._camera.instance.fov += 0.5;
 				if (this._camera.instance.fov > 60) {
+					if (this._ui?.zoomControl) this._ui.zoomControl.classList.add('active');
 					clearInterval(this._zoomingIntervalId);
 					this._isAnimating = false;
 				}
@@ -83,6 +88,7 @@ export class Camera extends EventTarget {
 	}
 
 	destruct() {
+		this._onClick && this._ui?.removeEventListener(events.UI_TOGGLE_ZOOM, this._onClick);
 		this._onMouseMove && document.removeEventListener('mousemove', this._onMouseMove);
 		clearInterval(this._zoomingIntervalId);
 	}

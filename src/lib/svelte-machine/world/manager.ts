@@ -1,6 +1,8 @@
 import { Matrix4, Vector3 } from 'three';
 import type RAPIER from '@dimforge/rapier3d';
 
+import { events } from '$lib/experience/static';
+
 import { SvelteMachineExperience } from '..';
 import type { World } from '.';
 import type { PhysicProperties } from '../physic';
@@ -16,16 +18,20 @@ export interface RigidBodyUserData {
 export class WorldManager extends EventTarget {
 	private readonly _experience = new SvelteMachineExperience();
 	private readonly _lights = this._experience.lights;
+	private readonly _ui = this._experience.ui;
 	private readonly _beltPath = this._experience.world?.conveyorBeltPath;
 	private readonly _vecZero = new Vector3();
 	private readonly _matrix = new Matrix4();
 	private readonly _initialItemsPosition =
-		this._beltPath?.getPointAt(0.99).setY(12) ?? this._vecZero;
+		this._beltPath?.getPointAt(0.99).setY(9) ?? this._vecZero;
 	private readonly _switchPoint = 17;
 
 	private _rawItemsPoolLeft: PhysicProperties[] = [];
 	private _rawItemsPool: PhysicProperties[] = [];
 	private _packedItemsPoolLeft: PhysicProperties[] = [];
+	private _spawningIntervalId?: number;
+	private _fastSpawningInterval = false;
+	private _setSpawning?: () => unknown;
 
 	constructor(private readonly _world: World) {
 		super();
@@ -216,7 +222,24 @@ export class WorldManager extends EventTarget {
 			if (this._packedItemsPoolLeft[id]) this._initPhysicalProps(this._packedItemsPoolLeft[id]);
 		});
 
-		setInterval(() => this._activateRandomRawItem(), 4000);
+		this._setSpawning = () => {
+			if (typeof this._spawningIntervalId === 'number') clearInterval(this._spawningIntervalId);
+
+			this._fastSpawningInterval = !this._fastSpawningInterval;
+
+			if (this._ui?.spawnRateControl) {
+				if (this._fastSpawningInterval) this._ui.spawnRateControl.classList.add('active');
+				else this._ui.spawnRateControl.classList.remove('active');
+			}
+
+			this._spawningIntervalId = setInterval(
+				() => this._activateRandomRawItem(),
+				this._fastSpawningInterval ? 1000 : 4000
+			);
+		};
+
+		this._spawningIntervalId = setInterval(() => this._activateRandomRawItem(), 3000);
+		this._ui?.addEventListener(events.UI_SPAWN_RATE, this._setSpawning);
 	}
 
 	public update(): void {
@@ -261,5 +284,10 @@ export class WorldManager extends EventTarget {
 			if (dynamicItem.rigidBody.translation().y <= -10)
 				return this._deactivateRawItem(rawItem, rawItemId);
 		});
+	}
+
+	destruct() {
+		if (typeof this._spawningIntervalId === 'number') clearInterval(this._spawningIntervalId);
+		this._setSpawning && this._ui?.removeEventListener(events.UI_SPAWN_RATE, this._setSpawning);
 	}
 }

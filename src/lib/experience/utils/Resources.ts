@@ -122,8 +122,8 @@ export default class Resources extends EventTarget {
 	destruct() {
 		const keys = Object.keys(this.items);
 
-		for (let i = 0; i < keys.length; i++) {
-			const item = this.items[keys[i]];
+		for (const element of keys) {
+			const item = this.items[element];
 			if (item instanceof Texture) item.dispose();
 
 			if ((item as GLTF | undefined)?.scene?.traverse)
