@@ -1,7 +1,7 @@
 import { Group, Matrix4, Mesh, MeshStandardMaterial, Object3D, Quaternion, Vector3 } from 'three';
 import type { GLTF } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import type { ColliderDesc } from '@dimforge/rapier3d';
+import type { ColliderDesc } from '@dimforge/rapier3d-compat';
 
 import conveyorBeltPathJson from '../../../data/svelte-conveyor-belt-path.json';
 

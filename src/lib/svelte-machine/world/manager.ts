@@ -1,5 +1,5 @@
 import { Matrix4, Vector3 } from 'three';
-import type RAPIER from '@dimforge/rapier3d';
+import type RAPIER from '@dimforge/rapier3d-compat';
 
 import { events } from '$lib/experience/static';
 

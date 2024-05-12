@@ -10,7 +10,7 @@ import {
 	SphereGeometry,
 	Vector3
 } from 'three';
-import type RAPIER from '@dimforge/rapier3d';
+import type RAPIER from '@dimforge/rapier3d-compat';
 
 import { events } from '$lib/experience/static';
 import { SvelteMachineExperience } from '.';
@@ -25,6 +25,8 @@ export interface PhysicProperties {
 	colliderDesc: RAPIER.ColliderDesc;
 	collider: RAPIER.Collider;
 }
+
+const RAPIER_PATH = 'https://cdn.skypack.dev/@dimforge/rapier3d-compat';
 
 /**
  * @description Physic helper based on `Rapier`
@@ -92,7 +94,10 @@ export class Physic extends EventTarget {
 	}
 
 	public async construct() {
-		this.rapier = (await import('@dimforge/rapier3d')).default;
+		this.rapier = await import(RAPIER_PATH);
+		await this.rapier.init();
+
+		console.log(this.rapier);
 
 		const gravity = new this.rapier.Vector3(0.0, -9.81, 0.0);
 		this.world = new this.rapier.World(gravity);
