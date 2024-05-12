@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 
-import { Camera } from './camera';
-import { Renderer } from './renderer';
+import { Camera } from './c-camera';
+import { Renderer } from './r-renderer';
 
-import Sizes, { type SceneSizesType } from './utils/sizes';
-import Time from './utils/time';
-import Resources, { type Source } from './utils/resources';
+import Sizes, { type SceneSizesType } from './utils/s-sizes';
+import Time from './utils/t-time';
+import Resources, { type Source } from './utils/r-resources';
 import Debug from './utils/debug';
-import { disposeMaterial } from './utils/helpers';
+import { disposeMaterial } from './utils/h-helpers';
 
 import { events } from './static';
 
