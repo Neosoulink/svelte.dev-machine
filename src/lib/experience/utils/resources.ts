@@ -3,7 +3,7 @@ import { type GLTF, GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
 import { events } from '../static';
-import { disposeMaterial } from './h-helpers';
+import { disposeMaterial } from './helpers';
 
 export type LoadedItem = GLTF | Texture;
 export type Source = {
