@@ -4,7 +4,7 @@
 
 <div id="loader">
 	<div
-		style="background-color: #ba2b00; position: absolute; height: 100dvw; width: 100dvw; border-radius: 100%; transform: scale(2); z-index: 10; transition: inherit;"
+		style="background-color: #ba2b00; position: absolute; height: 100dvw; width: 100dvw; border-radius: 100%; transform: scale(3); z-index: 10; transition: inherit;"
 		class="loader-bg"
 	/>
 	<Logo />
