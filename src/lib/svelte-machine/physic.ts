@@ -26,7 +26,7 @@ export interface PhysicProperties {
 	collider: RAPIER.Collider;
 }
 
-const RAPIER_PATH = 'https://cdn.skypack.dev/@dimforge/rapier3d-compat';
+const RAPIER_PATH = 'https://cdn.skypack.dev/@dimforge/rapier3d-compat@0.12.0';
 
 /**
  * @description Physic helper based on `Rapier`

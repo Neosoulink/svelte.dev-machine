@@ -35,7 +35,7 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"@dimforge/rapier3d-compat": "^0.13.1",
+		"@dimforge/rapier3d-compat": "^0.12.0",
 		"three": "^0.162.0"
 	}
 }
