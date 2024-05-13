@@ -39,7 +39,6 @@ export class Physic extends EventTarget {
 	private _vector = new Vector3();
 	private _quaternion = new Quaternion();
 	private _matrix = new Matrix4();
-	private _scale = new Vector3(1, 1, 1);
 
 	/**
 	 * @description `Rapier3D.js`.
@@ -354,13 +353,15 @@ export class Physic extends EventTarget {
 
 				for (let j = 0; j < bodies.length; j++) {
 					const physicProperties = bodies[j];
+					const physicPropertiesScale = (physicProperties.rigidBody.userData as { scale?: Vector3 })
+						?.scale;
 
 					const position = new Vector3().copy(physicProperties.rigidBody.translation());
-					this._quaternion.copy(physicProperties.rigidBody.rotation());
+					const quaternion = this._quaternion.copy(physicProperties.rigidBody.rotation());
 					const scale =
-						(physicProperties.rigidBody.userData as { scale?: Vector3 })?.scale ?? this._scale;
+						physicPropertiesScale instanceof Vector3 ? physicPropertiesScale : object.scale;
 
-					this._matrix.compose(position, this._quaternion, scale);
+					this._matrix.compose(position, quaternion, scale);
 					this._matrix.toArray(array, j * 16);
 				}
 
